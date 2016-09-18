@@ -1,0 +1,117 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+
+	# VM Settings
+	CPUS = 4
+	MEMORY = "4096"
+
+	# Vagrant box
+	config.vm.box = "intershop/centos7"
+
+	# Forwarded port mapping
+	config.vm.network "forwarded_port", guest: 8080, host: 8080
+	config.vm.network "forwarded_port", guest: 8443, host: 8443
+	config.vm.network "forwarded_port", guest: 1081, host: 1081
+
+	# Enable SSH agent forwarding
+	config.ssh.forward_agent = true
+	config.ssh.forward_x11 = true
+
+	# Share folder with guest VM
+	config.vm.synced_folder "install/", "/home/vagrant/install", owner: "vagrant", group: "vagrant", create: true
+	config.vm.synced_folder "files/", "/home/vagrant/files", owner: "vagrant", group: "vagrant", create: true
+	config.vm.synced_folder "<ASSEMBLY_NAME>/", "/home/vagrant/<ASSEMBLY_NAME>", owner: "vagrant", group: "vagrant", create: true
+	config.vm.synced_folder "<COMPONENT_SET>/", "/home/vagrant/<COMPONENT_SET>", owner: "vagrant", group: "vagrant", create: true
+	config.vm.synced_folder "developer_home/", "/home/vagrant/developer_home", owner: "vagrant", group: "vagrant", create: true
+
+	# VMware Fusion specific configuration
+	config.vm.provider "vmware_fusion" do |vmware_fusion|
+		vmware_fusion.vmx["numvcpus"] = CPUS
+		vmware_fusion.vmx["memsize"] = MEMORY
+	end
+
+	# VMware Workstation specific configuration
+	config.vm.provider "vmware_workstation" do |vmware_workstation|
+		vmware_workstation.vmx["numvcpus"] = CPUS
+		vmware_workstation.vmx["memsize"] = MEMORY
+	end
+
+	# VirtualBox specific configuration
+	config.vm.provider "virtualbox" do |vb|
+		vb.cpus = CPUS
+		vb.memory = MEMORY
+		vb.customize ["modifyvm", :id, "--ioapic", "on", "--audio", "none", "--usb", "off",]
+	end
+
+	# Install Java 8 (JDK 1.8)
+	$jdk18 = <<SCRIPT
+		chmod u+x /home/vagrant/install/setup_oracle_jdk18/*.sh
+		/home/vagrant/install/setup_oracle_jdk18/install.sh
+SCRIPT
+
+	# Excecute script to install Java 8 (JDK 1.8)
+	config.vm.provision "java8", type: "shell", inline: $jdk18
+
+	# Install MailCatcher
+	$mailcatcher = <<SCRIPT
+		chmod u+x /home/vagrant/install/setup_mailcatcher/*.sh
+		/home/vagrant/install/setup_mailcatcher/install.sh
+SCRIPT
+
+	# Shell Install MailCatcher execution
+	config.vm.provision "mailcatcher", type: "shell", inline: $mailcatcher
+
+	# Install ICM required tools
+	$prep_icm = <<SCRIPT
+		yum -y install subversion net-tools wget unzip libaio bc
+SCRIPT
+
+	# Excecute script to install ICM required tools
+	config.vm.provision "prep_icm", type: "shell", inline: $prep_icm
+
+	# Install Oracle XE
+	$xe = <<SCRIPT
+		chmod u+x /home/vagrant/install/setup_oracle_xe/*.sh
+		/home/vagrant/install/setup_oracle_xe/install.sh /home/vagrant/files/oracle-xe-*.x86_64.rpm
+		/home/vagrant/install/setup_oracle_xe/prepare_user.sh intershop intershop
+SCRIPT
+
+	# Excecute script to install Oracle XE
+	config.vm.provision "xe", type: "shell", inline: $xe
+	
+	# Deploy ICM
+	$deploy_icm = <<SCRIPT
+		# Set developer variables
+		cd /home/vagrant/developer_home/
+		source gradle_environment.sh
+	
+		# Publish Component set
+		cdSet
+		./gradlew publish useSetAsFilter
+		
+		# Deploy assembly
+		cdAssembly
+		./gradlew deployServer
+		
+		# Run DBinit
+		./gradlew dbinit
+		
+		# Setup ICM services
+		sudo /home/vagrant/server/postInstall/installServices.sh
+		sudo service eserver1 start
+		
+		# Change appserver.properties for MailCatcher
+		sed -i '/intershop.SMTPServer=/a \
+mail.smtp.host=localhost\\
+mail.smtp.port=1025' /home/vagrant/server/share/system/config/cluster/appserver.properties
+
+		# Start ICM
+		sudo service eserver1 start
+SCRIPT
+
+	# Excecute deployment ICM
+	config.vm.provision "deploy_icm", type: "shell", inline: $deploy_icm, privileged: false
+	
+end
