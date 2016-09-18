@@ -88,11 +88,11 @@ SCRIPT
 		source gradle_environment.sh
 	
 		# Publish Component set
-		cdSet
+		cd ../<COMPONENT_SET>
 		./gradlew publish useSetAsFilter
 		
 		# Deploy assembly
-		cdAssembly
+		cd ../<ASSEMBLY_NAME>
 		./gradlew deployServer
 		
 		# Run DBinit
@@ -100,7 +100,6 @@ SCRIPT
 		
 		# Setup ICM services
 		sudo /home/vagrant/server/postInstall/installServices.sh
-		sudo service eserver1 start
 		
 		# Change appserver.properties for MailCatcher
 		sed -i '/intershop.SMTPServer=/a \
