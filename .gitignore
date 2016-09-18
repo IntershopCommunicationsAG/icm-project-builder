@@ -1,3 +1,5 @@
-/cache
-/files
+/cache/assembly/*
+/cache/componentset/*
+/files/*
 /install
+!.keep
