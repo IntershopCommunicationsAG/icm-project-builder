@@ -6,11 +6,11 @@ set -e
 ## Script variables
 ARCHIVE_TYPES=(gz bz2 7z rar tar.gz tgz tar.bz2 tbz2 zip)
 NEXUS="192.168.17.132:8081"
-ICM_VERSION="7.7.2.5"
+ICM_VERSION="7.7.2.7"
 ICM_EDITION="b2x"
 GRADLE_VERSION="2.7.1"
 CI_BOOTSTRAP_VERSION="3.3.0"
-STARTER_STORE_VERSION="2.2.5"
+STARTER_STORE_VERSION="2.2.6"
 COMPONENT_SET="a_responsive"
 ASSEMBLY_NAME="inspired-b2x"
 

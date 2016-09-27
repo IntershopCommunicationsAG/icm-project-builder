@@ -89,14 +89,11 @@ SCRIPT
 	
 		# Publish Component set
 		cd ../<COMPONENT_SET>
-		./gradlew publish useSetAsFilter
+		sh ./gradlew useSetAsFilter publish
 		
 		# Deploy assembly
 		cd ../<ASSEMBLY_NAME>
-		./gradlew deployServer
-		
-		# Run DBinit
-		./gradlew dbinit
+		sh ./gradlew dbinit build publish
 		
 		# Setup ICM services
 		sudo /home/vagrant/server/postInstall/installServices.sh
