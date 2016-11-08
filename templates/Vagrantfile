@@ -9,6 +9,9 @@ Vagrant.configure(2) do |config|
 
 	# Vagrant box
 	config.vm.box = "intershop/centos7"
+	
+	# Intershop studio
+	ISTUDIO = false
 
 	# Forwarded port mapping
 	config.vm.network "forwarded_port", guest: 8080, host: 8080
@@ -17,7 +20,9 @@ Vagrant.configure(2) do |config|
 
 	# Enable SSH agent forwarding
 	config.ssh.forward_agent = true
-	config.ssh.forward_x11 = true
+	if ISTUDIO == true
+		config.ssh.forward_x11 = true
+	end
 
 	# Share folder with guest VM
 	config.vm.synced_folder "install/", "/home/vagrant/install", owner: "vagrant", group: "vagrant", create: true
@@ -28,18 +33,29 @@ Vagrant.configure(2) do |config|
 
 	# VMware Fusion specific configuration
 	config.vm.provider "vmware_fusion" do |vmware_fusion|
+		if ISTUDIO == true
+			vmware_fusion.gui = true
+			vmware_fusion.vmx["mks.enable3d"] = true
+		end
 		vmware_fusion.vmx["numvcpus"] = CPUS
 		vmware_fusion.vmx["memsize"] = MEMORY
 	end
 
 	# VMware Workstation specific configuration
 	config.vm.provider "vmware_workstation" do |vmware_workstation|
+		if ISTUDIO == true
+			vmware_workstation.gui = true
+			vmware_workstation.vmx["mks.enable3d"] = true
+		end
 		vmware_workstation.vmx["numvcpus"] = CPUS
 		vmware_workstation.vmx["memsize"] = MEMORY
 	end
 
 	# VirtualBox specific configuration
 	config.vm.provider "virtualbox" do |vb|
+		if ISTUDIO == true
+			vb.gui = true
+		end
 		vb.cpus = CPUS
 		vb.memory = MEMORY
 		vb.customize ["modifyvm", :id, "--ioapic", "on", "--audio", "none", "--usb", "off",]
@@ -109,5 +125,16 @@ SCRIPT
 
 	# Excecute deployment ICM
 	config.vm.provision "deploy_icm", type: "shell", inline: $deploy_icm, privileged: false
+	
+	# Install Intershop Studio
+	$iStudio = <<SCRIPT
+		chmod u+x /home/vagrant/install/setup_intershop_studio/*.sh
+		/home/vagrant/install/setup_intershop_studio/install.sh /home/vagrant/files/IntershopStudio_*.zip
+SCRIPT
+
+	# Excecute script to install Intershop Studio
+	if ISTUDIO == true
+		config.vm.provision "istudio", type: "shell", inline: $iStudio
+	end
 	
 end

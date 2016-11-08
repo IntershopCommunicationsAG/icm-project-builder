@@ -56,7 +56,7 @@ alias cdSet="cd $COMPONENTSET"
 alias cdAssembly="cd $ASSEMBLY"
 alias cdServer="cd $SERVER"
 alias cdDoc="cd $JAVADOC"
-alias openStudio="/opt/intershop/IntershopStudio/IntershopStudio"
+alias openStudio="istudio"
 
 echo " "
 echo "Gradle environment is set up."
